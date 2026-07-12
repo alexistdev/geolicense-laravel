@@ -77,12 +77,6 @@
             <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
             <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Status: ONLINE</span>
         </div>
-
-        <div class="mt-10 w-full bg-surface-container-low/50 rounded-lg border border-white/5 p-4 text-xs text-on-surface-variant">
-            <p class="font-bold uppercase tracking-widest text-[0.65rem] text-primary mb-2">Demo Accounts</p>
-            <p>Admin — <span class="text-on-surface">alexistdev@gmail.com</span> / <span class="text-on-surface">1234</span></p>
-            <p>User — <span class="text-on-surface">user@gmail.com</span> / <span class="text-on-surface">1234</span></p>
-        </div>
     </main>
 
     <footer class="relative z-10 w-full py-6 flex flex-col md:flex-row justify-center items-center px-12 gap-2 mt-8">
