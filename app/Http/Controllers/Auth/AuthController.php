@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Enums\Role;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+
+class AuthController extends Controller
+{
+    public function showLogin()
+    {
+        if (Auth::check()) {
+            return redirect(Auth::user()->role->homeUrl());
+        }
+
+        return view('auth.login');
+    }
+
+    public function login(Request $request): RedirectResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            throw ValidationException::withMessages([
+                'email' => 'The provided credentials are incorrect.',
+            ]);
+        }
+
+        if (Auth::user()->is_suspended) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'This account has been suspended.',
+            ]);
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended(Auth::user()->role->homeUrl());
+    }
+
+    public function showRegister()
+    {
+        if (Auth::check()) {
+            return redirect(Auth::user()->role->homeUrl());
+        }
+
+        return view('auth.register');
+    }
+
+    public function register(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', 'max:150', 'unique:glo_users,email'],
+            'password' => ['required', 'string', 'min:4', 'confirmed'],
+        ]);
+
+        $user = User::create([
+            'full_name' => $data['full_name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role' => Role::USER,
+        ]);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect($user->role->homeUrl());
+    }
+
+    public function logout(Request $request): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
+}
