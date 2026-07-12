@@ -100,7 +100,7 @@
                         <textarea name="description" x-model="form.description" rows="3" class="w-full bg-surface-container-highest/50 rounded-lg py-3 px-4 text-on-surface focus:ring-2 focus:ring-primary/50 outline-none border-none"></textarea>
                     </div>
                     <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" name="is_active" x-model="form.is_active" class="w-5 h-5 rounded bg-surface-container-highest text-primary border-none focus:ring-primary/40">
+                        <input type="checkbox" name="is_active" value="1" x-model="form.is_active" class="w-5 h-5 rounded bg-surface-container-highest text-primary border-none focus:ring-primary/40">
                         <span class="text-sm text-on-surface-variant">Active (available for licensing)</span>
                     </label>
                     <div class="flex justify-end gap-3 pt-2">
