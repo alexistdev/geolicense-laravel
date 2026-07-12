@@ -236,7 +236,7 @@ Buka tab **Actions** → job **Deploy to VPS** harus hijau, dan smoke-test `/up`
 ## Deploy berikutnya
 
 Cukup `git push origin main` → GitHub Actions menjalankan `deploy.sh`.
-Manual (kalau perlu): `ssh deploy@SERVER_IP 'bash /var/www/geolicense/deploy.sh'`.
+Manual (kalau perlu): `ssh deploy@SERVER_IP 'bash /var/www/geolicense/deploy/deploy.sh'`.
 
 ## Ditunda (tambah saat perlu)
 - **Supervisor/queue worker** — kalau ada job `ShouldQueue`/email antrian.

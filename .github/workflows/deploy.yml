@@ -24,7 +24,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           command_timeout: 15m
-          script: bash /var/www/geolicense/deploy.sh
+          script: bash /var/www/geolicense/deploy/deploy.sh
 
       - name: Smoke test /up
         uses: appleboy/ssh-action@v1.2.0
