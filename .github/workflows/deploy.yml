@@ -1,0 +1,43 @@
+name: Deploy to VPS
+
+# Auto-deploy tiap push ke main. Juga bisa dijalankan manual dari tab Actions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Jalankan deploy.sh di server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: bash /var/www/geolicense/deploy.sh
+
+      - name: Smoke test /up
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Utamakan HTTPS loopback (certbot memasang redirect 80->443).
+            code=$(curl -sk -o /dev/null -w '%{http_code}' -L https://127.0.0.1/up || true)
+            if [ "$code" != "200" ]; then
+              code=$(curl -s -o /dev/null -w '%{http_code}' -L http://127.0.0.1/up || true)
+            fi
+            echo "GET /up -> $code"
+            test "$code" = "200"
