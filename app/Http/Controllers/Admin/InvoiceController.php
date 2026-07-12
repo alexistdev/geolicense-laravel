@@ -46,4 +46,13 @@ class InvoiceController extends Controller
             ->route('admin.invoices.show', $invoice)
             ->with('success', 'Payment rejected. The invoice is unpaid again.');
     }
+
+    public function void(string $invoice): RedirectResponse
+    {
+        $this->invoiceService->voidInvoice($invoice);
+
+        return redirect()
+            ->route('admin.invoices.show', $invoice)
+            ->with('success', 'Invoice voided. The order has been cancelled.');
+    }
 }

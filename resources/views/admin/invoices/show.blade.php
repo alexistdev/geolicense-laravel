@@ -1,6 +1,6 @@
 <x-app-layout title="Invoice {{ $invoice->invoice_number }} — GeoLicense" header="Admin Console">
     @php $payment = $invoice->order?->payment; @endphp
-    <div class="p-8 space-y-6 max-w-4xl">
+    <div class="p-8 space-y-6 max-w-4xl" x-data="{ approveOpen: false, voidOpen: false }">
         <a href="{{ route('admin.invoices.index') }}" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-primary text-sm">
             <span class="material-symbols-outlined text-base">arrow_back</span> Back to invoices
         </a>
@@ -66,15 +66,13 @@
             @endif
 
             {{-- Actions --}}
-            @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::PAID) || $invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::UNPAID))
+            @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::PAID) || $invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::UNPAID) || $invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::CANCELLED))
                 <div class="border-t border-white/5 pt-6 flex flex-wrap gap-3">
                     @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::PAID))
-                        <form method="POST" action="{{ route('admin.invoices.validate', $invoice->id) }}" onsubmit="return confirm('Approve this payment and issue the license?')">
-                            @csrf @method('PATCH')
-                            <button class="flex items-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm">
-                                <span class="material-symbols-outlined text-lg">check_circle</span> Approve &amp; Issue License
-                            </button>
-                        </form>
+                        <button type="button" @click="approveOpen = true"
+                            class="flex items-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm">
+                            <span class="material-symbols-outlined text-lg">check_circle</span> Approve &amp; Issue License
+                        </button>
                     @endif
                     @if ($invoice->status === \App\Enums\InvoiceStatus::AWAITING_VERIFICATION)
                         <form method="POST" action="{{ route('admin.invoices.reject', $invoice->id) }}" onsubmit="return confirm('Reject this payment?')">
@@ -84,8 +82,91 @@
                             </button>
                         </form>
                     @endif
+                    @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::CANCELLED))
+                        <button type="button" @click="voidOpen = true"
+                            class="flex items-center gap-2 px-5 py-3 rounded-lg bg-surface-container-high text-on-surface-variant border border-white/10 font-bold text-sm hover:text-error hover:border-error/30">
+                            <span class="material-symbols-outlined text-lg">block</span> Void Invoice
+                        </button>
+                    @endif
                 </div>
             @endif
         </div>
+
+        {{-- Approve confirmation modal --}}
+        @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::PAID))
+            <div x-show="approveOpen" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="display:none">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="approveOpen = false"></div>
+                <div class="relative w-full max-w-md bg-surface-container rounded-2xl border border-white/10 shadow-2xl p-6"
+                     @keydown.escape.window="approveOpen = false"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0 w-11 h-11 rounded-full bg-primary-container/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">check_circle</span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-white">Approve this payment?</h3>
+                            <p class="text-sm text-on-surface-variant mt-1.5">
+                                Invoice <span class="font-mono text-primary">{{ $invoice->invoice_number }}</span> will be marked
+                                <span class="font-semibold text-on-surface">Paid</span> and the license(s) will be issued to
+                                <span class="font-semibold text-on-surface">{{ $invoice->order?->user?->full_name }}</span>.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" @click="approveOpen = false"
+                            class="px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface text-sm font-medium">
+                            Cancel
+                        </button>
+                        <form method="POST" action="{{ route('admin.invoices.validate', $invoice->id) }}">
+                            @csrf @method('PATCH')
+                            <button type="submit"
+                                class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm">
+                                <span class="material-symbols-outlined text-lg">check_circle</span> Approve &amp; Issue
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Void confirmation modal --}}
+        @if ($invoice->status->canTransitionTo(\App\Enums\InvoiceStatus::CANCELLED))
+            <div x-show="voidOpen" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" style="display:none">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="voidOpen = false"></div>
+                <div class="relative w-full max-w-md bg-surface-container rounded-2xl border border-white/10 shadow-2xl p-6"
+                     @keydown.escape.window="voidOpen = false"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100">
+                    <div class="flex items-start gap-4">
+                        <div class="shrink-0 w-11 h-11 rounded-full bg-error-container/30 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-error">block</span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-white">Void this invoice?</h3>
+                            <p class="text-sm text-on-surface-variant mt-1.5">
+                                Invoice <span class="font-mono text-primary">{{ $invoice->invoice_number }}</span> will be marked
+                                <span class="font-semibold text-on-surface">Cancelled</span> and its order will be cancelled. This cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" @click="voidOpen = false"
+                            class="px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface text-sm font-medium">
+                            Cancel
+                        </button>
+                        <form method="POST" action="{{ route('admin.invoices.void', $invoice->id) }}">
+                            @csrf @method('PATCH')
+                            <button type="submit"
+                                class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-error text-on-error font-bold text-sm">
+                                <span class="material-symbols-outlined text-lg">block</span> Void Invoice
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 </x-app-layout>

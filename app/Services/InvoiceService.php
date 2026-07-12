@@ -177,4 +177,27 @@ class InvoiceService
             $invoice->save();
         });
     }
+
+    public function voidInvoice(string $invoiceId): void
+    {
+        DB::transaction(function () use ($invoiceId) {
+            $invoice = Invoice::query()->with('order')->find($invoiceId);
+            if (! $invoice) {
+                throw new NotFoundException("Invoice not found: {$invoiceId}");
+            }
+
+            if (! $invoice->status->canTransitionTo(InvoiceStatus::CANCELLED)) {
+                throw new BadRequestException("Invoice cannot be voided in its current state: {$invoiceId}");
+            }
+
+            $order = $invoice->order;
+            if ($order && $order->status->canTransitionTo(OrderStatus::CANCELLED)) {
+                $order->status = OrderStatus::CANCELLED;
+                $order->save();
+            }
+
+            $invoice->status = InvoiceStatus::CANCELLED;
+            $invoice->save();
+        });
+    }
 }
