@@ -1,0 +1,31 @@
+# Tuning MySQL 8 untuk droplet 1 GB RAM.
+# Pasang di server:
+#   sudo cp deploy/mysql-geolicense.cnf /etc/mysql/mysql.conf.d/geolicense.cnf
+#   sudo systemctl restart mysql
+#
+# Tujuan: menekan footprint memori MySQL agar muat berdampingan dengan
+# PHP-FPM + Nginx + (sesekali) build Node di RAM 1 GB.
+
+[mysqld]
+# Buffer pool InnoDB — porsi memori terbesar MySQL. 128M cukup untuk app kecil.
+innodb_buffer_pool_size = 128M
+innodb_log_buffer_size  = 8M
+
+# performance_schema memakan puluhan MB; matikan di droplet kecil.
+performance_schema = OFF
+
+# Batasi koneksi (app single-node, PHP-FPM max_children rendah).
+max_connections = 40
+
+# Kurangi cache per-thread.
+table_open_cache = 200
+tmp_table_size   = 16M
+max_heap_table_size = 16M
+
+# Log lambat opsional untuk diagnosa (nonaktif default).
+# slow_query_log = 1
+# slow_query_log_file = /var/log/mysql/slow.log
+# long_query_time = 2
+
+# MySQL hanya menerima koneksi lokal (default Ubuntu). Jangan expose ke publik.
+bind-address = 127.0.0.1
