@@ -4,7 +4,8 @@ Runbook dari nol → production. Target: **Ubuntu 24.04, 1 GB RAM / 1 vCPU / 25 
 Nginx + PHP-FPM 8.4 + MySQL 8, HTTPS Let's Encrypt, auto-deploy via GitHub Actions.
 
 > Domain sudah terisi (`geolicense.my.id`). Ganti `SERVER_IP` dengan IP droplet
-> di semua perintah di bawah. Jalankan berurutan.
+> di semua perintah di bawah. User non-root memakai nama **`alexistdev`**.
+> Jalankan berurutan.
 
 Isi folder `deploy/`:
 
@@ -49,10 +50,11 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 sysctl -w vm.swappiness=10
 echo 'vm.swappiness=10' >> /etc/sysctl.conf
 
-# --- User non-root `deploy` ---
-adduser --disabled-password --gecos "" deploy
-usermod -aG sudo deploy
-rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy   # salin SSH key root ke deploy
+# --- User non-root `alexistdev` ---
+adduser --disabled-password --gecos "" alexistdev
+usermod -aG sudo alexistdev
+passwd alexistdev                                           # WAJIB: set password utk `sudo` (login tetap via key)
+rsync --archive --chown=alexistdev:alexistdev ~/.ssh /home/alexistdev   # salin SSH key root ke alexistdev
 
 # --- Update sistem + fail2ban + firewall ---
 apt update && apt -y upgrade
@@ -60,19 +62,20 @@ apt -y install fail2ban ufw
 ufw allow OpenSSH
 ufw --force enable            # 'Nginx Full' dibuka setelah Nginx terpasang (step 4)
 
-# --- Nonaktifkan login root & password (uji dulu SSH sebagai deploy di terminal lain!) ---
+# --- Nonaktifkan login root & password (uji dulu SSH sebagai alexistdev di terminal lain!) ---
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 systemctl restart ssh
 ```
 
 > ⚠️ Sebelum menutup sesi root, **buka terminal baru** dan pastikan
-> `ssh deploy@SERVER_IP` berhasil. Setelah ini semua langkah sebagai `deploy`.
+> `ssh alexistdev@SERVER_IP` berhasil **dan** `sudo whoami` mencetak `root`.
+> Setelah ini semua langkah sebagai `alexistdev`. (Akses root darurat: DigitalOcean web console.)
 
-## 4. Install stack (sebagai `deploy`, pakai `sudo`)
+## 4. Install stack (sebagai `alexistdev`, pakai `sudo`)
 
 ```bash
-ssh deploy@SERVER_IP
+ssh alexistdev@SERVER_IP
 
 # PHP 8.4 via PPA ondrej
 sudo add-apt-repository -y ppa:ondrej/php
@@ -120,8 +123,8 @@ Tuning memori MySQL dipasang setelah repo di-clone (step 7), atau langsung:
 ## 6. Deploy key server → GitHub (agar `git pull` repo privat jalan)
 
 ```bash
-# Sebagai deploy, buat key khusus untuk menarik repo
-ssh-keygen -t ed25519 -C "deploy@geolicense" -f ~/.ssh/id_ed25519 -N ""
+# Sebagai alexistdev, buat key khusus untuk menarik repo
+ssh-keygen -t ed25519 -C "geolicense-vps deploy key" -f ~/.ssh/id_ed25519 -N ""
 cat ~/.ssh/id_ed25519.pub
 ```
 Salin output → GitHub repo **`geolicense-laravel` → Settings → Deploy keys → Add
@@ -132,7 +135,7 @@ Uji: `ssh -T git@github.com` (ketik `yes`).
 
 ```bash
 sudo mkdir -p /var/www/geolicense
-sudo chown deploy:deploy /var/www/geolicense
+sudo chown alexistdev:alexistdev /var/www/geolicense
 git clone git@github.com:alexistdev/geolicense-laravel.git /var/www/geolicense
 cd /var/www/geolicense
 
@@ -150,14 +153,14 @@ npm ci && NODE_OPTIONS=--max-old-space-size=640 npm run build
 php artisan storage:link
 php artisan optimize
 
-# Izin direktori yang ditulis Laravel → milik www-data (pemilik PHP-FPM)
-sudo chown -R deploy:www-data storage bootstrap/cache
+# Izin direktori yang ditulis Laravel → grup www-data (pemilik PHP-FPM)
+sudo chown -R alexistdev:www-data storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 
-# Izinkan deploy.sh me-reload PHP-FPM tanpa password
-echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm' \
-  | sudo tee /etc/sudoers.d/geolicense-deploy
-sudo chmod 440 /etc/sudoers.d/geolicense-deploy
+# Izinkan deploy.sh me-reload PHP-FPM tanpa password (untuk CI)
+echo 'alexistdev ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm, /usr/bin/systemctl reload nginx' \
+  | sudo tee /etc/sudoers.d/geolicense-alexistdev
+sudo chmod 440 /etc/sudoers.d/geolicense-alexistdev
 
 # Pasang tuning MySQL & pool PHP-FPM
 sudo cp deploy/mysql-geolicense.cnf /etc/mysql/mysql.conf.d/geolicense.cnf
@@ -187,8 +190,8 @@ Buat **key kedua** khusus untuk Actions SSH ke server (beda dari deploy key repo
 # Di laptop (atau di server lalu ambil private-nya sekali):
 ssh-keygen -t ed25519 -C "gha-deploy" -f ~/.ssh/gha_geolicense -N ""
 
-# Daftarkan PUBLIC key ke server agar Actions bisa masuk sebagai `deploy`
-ssh deploy@SERVER_IP "echo '$(cat ~/.ssh/gha_geolicense.pub)' >> ~/.ssh/authorized_keys"
+# Daftarkan PUBLIC key ke server agar Actions bisa masuk sebagai `alexistdev`
+ssh alexistdev@SERVER_IP "echo '$(cat ~/.ssh/gha_geolicense.pub)' >> ~/.ssh/authorized_keys"
 ```
 
 GitHub repo **Settings → Secrets and variables → Actions → New repository secret**:
@@ -196,7 +199,7 @@ GitHub repo **Settings → Secrets and variables → Actions → New repository 
 | Secret | Nilai |
 |---|---|
 | `SSH_HOST` | `SERVER_IP` |
-| `SSH_USER` | `deploy` |
+| `SSH_USER` | `alexistdev` |
 | `SSH_PORT` | `22` |
 | `SSH_PRIVATE_KEY` | isi lengkap file `~/.ssh/gha_geolicense` (PRIVATE key) |
 
@@ -236,7 +239,7 @@ Buka tab **Actions** → job **Deploy to VPS** harus hijau, dan smoke-test `/up`
 ## Deploy berikutnya
 
 Cukup `git push origin main` → GitHub Actions menjalankan `deploy.sh`.
-Manual (kalau perlu): `ssh deploy@SERVER_IP 'bash /var/www/geolicense/deploy/deploy.sh'`.
+Manual (kalau perlu): `ssh alexistdev@SERVER_IP 'bash /var/www/geolicense/deploy/deploy.sh'`.
 
 ## Ditunda (tambah saat perlu)
 - **Supervisor/queue worker** — kalau ada job `ShouldQueue`/email antrian.
