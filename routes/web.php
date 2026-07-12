@@ -50,6 +50,10 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
     Route::get('/invoices/{invoice}', [Admin\InvoiceController::class, 'show'])->name('invoices.show');
     Route::patch('/invoices/{invoice}/validate', [Admin\InvoiceController::class, 'validateInvoice'])->name('invoices.validate');
     Route::patch('/invoices/{invoice}/reject', [Admin\InvoiceController::class, 'reject'])->name('invoices.reject');
+
+    Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
+    Route::patch('/settings/profile', [Admin\SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::patch('/settings/password', [Admin\SettingsController::class, 'updatePassword'])->name('settings.password');
 });
 
 /*

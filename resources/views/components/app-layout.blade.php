@@ -89,6 +89,16 @@
                 @endforeach
             </nav>
 
+            @if ($sidebarUser?->isAdmin())
+                <div class="px-3 pb-2">
+                    <a href="{{ route('admin.settings') }}"
+                        class="py-3 px-3 flex items-center gap-3 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings*') ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400' : 'text-[#c2c6d6] hover:bg-[#171f33] hover:text-white' }}">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span class="text-sm font-medium">Settings</span>
+                    </a>
+                </div>
+            @endif
+
             <div class="px-6 mt-auto">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
