@@ -50,7 +50,6 @@ class DatabaseSeeder extends Seeder
     {
         $users = [
             ['alexistdev@gmail.com', 'Alexsander Hendra Wijaya', Role::ADMIN],
-            ['admin@gmail.com', 'Administrator', Role::ADMIN],
             ['user@gmail.com', 'Demo User', Role::USER],
         ];
 
