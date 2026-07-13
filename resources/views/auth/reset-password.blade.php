@@ -33,15 +33,7 @@
                 <form method="POST" action="{{ route('password.update') }}" class="space-y-5" x-data="{ show: false }">
                     @csrf
                     <input type="hidden" name="token" value="{{ $token }}">
-
-                    <div class="space-y-2">
-                        <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" for="email">Email</label>
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">alternate_email</span>
-                            <input value="{{ old('email', $email) }}" name="email" type="email" id="email" required
-                                class="w-full bg-surface-container-highest/50 border-none rounded-lg py-3.5 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 transition-all outline-none">
-                        </div>
-                    </div>
+                    <input type="hidden" name="email" value="{{ old('email', $email) }}">
 
                     <div class="space-y-2">
                         <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" for="password">New Password</label>
