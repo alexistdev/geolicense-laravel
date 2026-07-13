@@ -24,24 +24,32 @@
             <h2 class="text-lg font-bold text-white mb-4">Choose a plan</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 @forelse ($product->licensePlans as $plan)
+                    @php $isFree = (float) $plan->price == 0.0; @endphp
                     <div class="bg-surface-container rounded-2xl p-6 border border-white/5 flex flex-col">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-bold text-white">{{ $plan->name }}</h3>
                             <span class="px-2.5 py-1 rounded-full bg-secondary-container/40 text-secondary text-[0.625rem] font-bold uppercase tracking-wider">{{ $plan->billing_cycle }}</span>
                         </div>
-                        <p class="text-3xl font-black text-primary mt-4">{{ money($plan->price, $plan->currency) }}</p>
+                        <p class="text-3xl font-black text-primary mt-4">{{ $isFree ? 'Free' : money($plan->price, $plan->currency) }}</p>
                         <ul class="mt-5 space-y-2 text-sm text-on-surface-variant flex-1">
                             <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">check</span> {{ $plan->duration_days }} days validity</li>
                             <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">check</span> Up to {{ $plan->max_seats }} machines</li>
                             <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">check</span> {{ $plan->licenseType?->name ?? 'License' }}</li>
                         </ul>
-                        <form method="POST" action="{{ route('user.orders.store') }}" class="mt-6">
-                            @csrf
-                            <input type="hidden" name="license_plan_id" value="{{ $plan->id }}">
-                            <button type="submit" class="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-lg">shopping_cart</span> Order this plan
+                        @if ($isFree && $ownsFreeLicense)
+                            <button type="button" disabled class="mt-6 w-full py-3 rounded-lg bg-surface-container-highest text-on-surface-variant/60 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-lg">check_circle</span> Free license claimed
                             </button>
-                        </form>
+                            <p class="mt-2 text-xs text-on-surface-variant/60 text-center">Choose a Premium plan for another license.</p>
+                        @else
+                            <form method="POST" action="{{ route('user.orders.store') }}" class="mt-6">
+                                @csrf
+                                <input type="hidden" name="license_plan_id" value="{{ $plan->id }}">
+                                <button type="submit" class="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-sm flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-lg">{{ $isFree ? 'bolt' : 'shopping_cart' }}</span> {{ $isFree ? 'Activate free license' : 'Order this plan' }}
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 @empty
                     <p class="text-on-surface-variant">No plans available for this product yet.</p>

@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Exceptions\BadRequestException;
 use App\Exceptions\NotFoundException;
 use App\Models\Invoice;
 use App\Models\LicensePlan;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,6 +24,8 @@ class OrderService
     private const PREFIX_ORDER = 'ORD';
 
     private const PREFIX_INVOICE = 'INV';
+
+    public function __construct(private readonly LicenseService $licenseService) {}
 
     public function createOrder(User $user, string $licensePlanId, int $quantity = 1): Order
     {
@@ -38,16 +42,23 @@ class OrderService
             throw new BadRequestException("License plan is not active: {$licensePlanId}");
         }
 
-        if ($this->hasPendingInvoice($user->id)) {
+        $isFree = $this->isFreePlan($plan);
+
+        if ($isFree) {
+            // Free plans are limited to one per product; enforce before charging nothing.
+            if ($this->licenseService->userHasFreeLicenseForProduct($user->id, $plan->product_id)) {
+                throw new BadRequestException('You already have the free license for this product. Please choose a Premium plan.');
+            }
+        } elseif ($this->hasPendingInvoice($user->id)) {
             throw new BadRequestException('You already have a pending invoice. Please settle it before ordering again.');
         }
 
-        return DB::transaction(function () use ($user, $plan, $quantity) {
+        return DB::transaction(function () use ($user, $plan, $quantity, $isFree) {
             $order = Order::create([
                 'user_id' => $user->id,
                 'order_number' => $this->generateNumber(self::PREFIX_ORDER),
                 'currency' => $plan->currency,
-                'status' => OrderStatus::PENDING,
+                'status' => $isFree ? OrderStatus::COMPLETED : OrderStatus::PENDING,
             ]);
 
             $unitPrice = $plan->price;
@@ -60,6 +71,12 @@ class OrderService
                 'unit_price' => $unitPrice,
                 'total_price' => $totalPrice,
             ]);
+
+            if ($isFree) {
+                $this->settleFreeOrder($order, $item, $plan);
+
+                return $order;
+            }
 
             $uniqueCode = random_int(100, 999);
             Invoice::create([
@@ -75,6 +92,41 @@ class OrderService
 
             return $order;
         });
+    }
+
+    private function isFreePlan(LicensePlan $plan): bool
+    {
+        return bccomp((string) $plan->price, '0', 4) === 0;
+    }
+
+    /**
+     * Zero-price checkout: bill nothing (no unique code), mark the invoice paid,
+     * record a system payment and activate the license immediately.
+     */
+    private function settleFreeOrder(Order $order, OrderItem $item, LicensePlan $plan): void
+    {
+        Invoice::create([
+            'order_id' => $order->id,
+            'invoice_number' => $this->generateNumber(self::PREFIX_INVOICE),
+            'amount' => $item->total_price,
+            'currency' => $order->currency,
+            'status' => InvoiceStatus::PAID,
+            'issued_at' => now(),
+            'unique_code' => 0,
+            'total_amount' => $item->total_price,
+        ]);
+
+        Payment::create([
+            'order_id' => $order->id,
+            'provider' => 'FREE',
+            'provider_reference' => 'FREE-'.$order->order_number,
+            'amount' => $item->total_price,
+            'currency' => $order->currency,
+            'status' => PaymentStatus::VERIFIED,
+            'paid_at' => now(),
+        ]);
+
+        $this->licenseService->addLicense($order->user_id, $plan->id, $item->id);
     }
 
     private function hasPendingInvoice(string $userId): bool

@@ -6,6 +6,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Invoice;
+use App\Models\License;
 use App\Models\LicensePlan;
 use App\Models\LicenseType;
 use App\Models\Product;
@@ -25,6 +26,17 @@ class OrderPaymentTest extends TestCase
         return LicensePlan::create([
             'product_id' => $product->id, 'license_type_id' => $type->id, 'name' => 'Monthly',
             'billing_cycle' => 'MONTHLY', 'duration_days' => 30, 'max_seats' => 5, 'price' => 100000, 'currency' => 'IDR', 'is_active' => true,
+        ]);
+    }
+
+    private function makeFreePlan(?Product $product = null, string $name = 'Free'): LicensePlan
+    {
+        $product ??= Product::create(['name' => 'App '.uniqid(), 'version' => '1.0', 'sku' => 'SKU-'.uniqid(), 'is_active' => true]);
+        $type = LicenseType::create(['name' => 'Free', 'is_trial' => true]);
+
+        return LicensePlan::create([
+            'product_id' => $product->id, 'license_type_id' => $type->id, 'name' => $name,
+            'billing_cycle' => 'MONTHLY', 'duration_days' => 30, 'max_seats' => 1, 'price' => 0, 'currency' => 'IDR', 'is_active' => true,
         ]);
     }
 
@@ -79,5 +91,54 @@ class OrderPaymentTest extends TestCase
             ->assertRedirect('/user/marketplace');
 
         $this->assertEquals(1, Invoice::count());
+    }
+
+    public function test_free_plan_activates_license_instantly_without_billing(): void
+    {
+        $user = User::factory()->create();
+        $plan = $this->makeFreePlan();
+
+        $this->actingAs($user)
+            ->post('/user/orders', ['license_plan_id' => $plan->id])
+            ->assertRedirect('/user/license');
+
+        // Order completed, invoice paid with no unique code billed.
+        $this->assertDatabaseHas('glo_orders', ['user_id' => $user->id, 'status' => OrderStatus::COMPLETED->value]);
+        $this->assertDatabaseHas('glo_invoices', ['status' => InvoiceStatus::PAID->value, 'unique_code' => 0, 'total_amount' => '0.0000']);
+        $this->assertDatabaseHas('glo_payments', ['provider' => 'FREE', 'status' => PaymentStatus::VERIFIED->value]);
+
+        // License is issued and active immediately.
+        $this->assertDatabaseHas('glo_licenses', [
+            'user_id' => $user->id, 'product_id' => $plan->product_id, 'status' => 'ACTIVE',
+        ]);
+    }
+
+    public function test_free_plan_is_limited_to_one_per_product(): void
+    {
+        $user = User::factory()->create();
+        $plan = $this->makeFreePlan();
+
+        $this->actingAs($user)->post('/user/orders', ['license_plan_id' => $plan->id]);
+
+        $this->actingAs($user)
+            ->from('/user/marketplace')
+            ->post('/user/orders', ['license_plan_id' => $plan->id])
+            ->assertRedirect('/user/marketplace')
+            ->assertSessionHas('error');
+
+        $this->assertEquals(1, License::where('user_id', $user->id)->count());
+    }
+
+    public function test_free_license_limit_is_scoped_per_product(): void
+    {
+        $user = User::factory()->create();
+        $freeA = $this->makeFreePlan();
+        $freeB = $this->makeFreePlan();
+
+        $this->actingAs($user)->post('/user/orders', ['license_plan_id' => $freeA->id])->assertRedirect('/user/license');
+        // A free license for a different product is still allowed.
+        $this->actingAs($user)->post('/user/orders', ['license_plan_id' => $freeB->id])->assertRedirect('/user/license');
+
+        $this->assertEquals(2, License::where('user_id', $user->id)->count());
     }
 }

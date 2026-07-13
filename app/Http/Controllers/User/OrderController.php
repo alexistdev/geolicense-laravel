@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Services\OrderService;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,13 @@ class OrderController extends Controller
             $data['license_plan_id'],
             (int) ($data['quantity'] ?? 1),
         );
+
+        // Free plans are settled instantly (COMPLETED) — the license is already active.
+        if ($order->status === OrderStatus::COMPLETED) {
+            return redirect()
+                ->route('user.license.index')
+                ->with('success', 'Your free license is now active.');
+        }
 
         $order->load('invoice');
 

@@ -44,6 +44,20 @@ class LicenseService
     }
 
     /**
+     * Whether the user already holds a free (zero-price plan) license for this
+     * product. Free licenses are one-per-product and expired/revoked ones still
+     * count, so a second free checkout for the same product must be blocked.
+     */
+    public function userHasFreeLicenseForProduct(string $userId, string $productId): bool
+    {
+        return License::query()
+            ->where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->whereHas('licensePlan', fn ($q) => $q->withTrashed()->where('price', 0))
+            ->exists();
+    }
+
+    /**
      * Issue a license for a paid order item (called by InvoiceService::validateInvoice).
      */
     public function addLicense(string $userId, string $licensePlanId, string $orderItemId): License
