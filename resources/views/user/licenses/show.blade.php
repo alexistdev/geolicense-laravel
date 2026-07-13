@@ -62,7 +62,7 @@
                 <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Client activation</p>
                 <div class="rounded-lg bg-surface-container-lowest p-4 font-mono text-xs text-on-surface-variant overflow-x-auto">
                     <p class="text-primary">POST /api/v1/licenses/activate</p>
-                    <p>{ "licenseKey": "{{ $license->license_key }}", "machineId": "&lt;machine&gt;", "osInfo": "&lt;os&gt;" }</p>
+                    <p>{ "licenseKey": "{{ $license->license_key }}", "machineId": "&lt;machine&gt;", "productSku": "{{ $license->product?->sku }}", "osInfo": "&lt;os&gt;" }</p>
                 </div>
             </div>
         </div>

@@ -34,9 +34,10 @@ class ProductionSeeder extends Seeder
     {
         $this->seedBaseMenus();
 
-        // Idempotent add-on menus (System > Log System). Any future menu added
-        // to deploy.sh as its own idempotent seeder should also be called here.
+        // Idempotent add-on seeders. Any future seeder added to deploy.sh should
+        // also be called here so a full ProductionSeeder run stays complete.
         $this->call(SystemMenuSeeder::class);
+        $this->call(ProductSeeder::class);
 
         $this->seedAdminUser();
     }

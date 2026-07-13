@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\SystemLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -41,7 +42,7 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $product);
         $product->update($data);
 
         SystemLog::record(
@@ -67,12 +68,12 @@ class ProductController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Product $product = null): array
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'version' => ['required', 'string', 'max:10'],
-            'sku' => ['required', 'string', 'max:20'],
+            'sku' => ['required', 'string', 'max:20', Rule::unique('glo_products', 'sku')->ignore($product)],
             'description' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);

@@ -20,12 +20,14 @@ class LicenseApiController extends Controller
         $data = $request->validate([
             'licenseKey' => ['required', 'string'],
             'machineId' => ['required', 'string'],
+            'productSku' => ['required', 'string'],
             'osInfo' => ['nullable', 'string'],
         ]);
 
         $payload = $this->tokenService->activate(
             $data['licenseKey'],
             $data['machineId'],
+            $data['productSku'],
             $data['osInfo'] ?? null,
         );
 
@@ -37,9 +39,10 @@ class LicenseApiController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string'],
             'machineId' => ['required', 'string'],
+            'productSku' => ['required', 'string'],
         ]);
 
-        $payload = $this->tokenService->verify($data['token'], $data['machineId']);
+        $payload = $this->tokenService->verify($data['token'], $data['machineId'], $data['productSku']);
 
         return $this->ok($payload, 'License verified successfully.');
     }

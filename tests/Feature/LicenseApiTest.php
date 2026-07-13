@@ -18,10 +18,10 @@ class LicenseApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeLicense(array $overrides = []): License
+    private function makeLicense(array $overrides = [], string $sku = 'SKU-X'): License
     {
         $user = User::factory()->create();
-        $product = Product::create(['name' => 'App', 'version' => '1.0', 'sku' => 'SKU-X', 'is_active' => true]);
+        $product = Product::create(['name' => 'App', 'version' => '1.0', 'sku' => $sku, 'is_active' => true]);
         $type = LicenseType::create(['name' => 'Premium', 'is_trial' => false]);
         $plan = LicensePlan::create([
             'product_id' => $product->id, 'license_type_id' => $type->id, 'name' => 'Monthly',
@@ -42,12 +42,13 @@ class LicenseApiTest extends TestCase
         $license = $this->makeLicense();
 
         $response = $this->postJson('/api/v1/licenses/activate', [
-            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'osInfo' => 'macOS',
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X', 'osInfo' => 'macOS',
         ]);
 
         $response->assertOk()
             ->assertJsonPath('status', true)
             ->assertJsonPath('payload.valid', true)
+            ->assertJsonPath('payload.productSku', 'SKU-X')
             ->assertJsonPath('payload.usedSeats', 1);
 
         $this->assertNotEmpty($response->json('payload.token'));
@@ -60,10 +61,10 @@ class LicenseApiTest extends TestCase
         $license = $this->makeLicense();
 
         $token = $this->postJson('/api/v1/licenses/activate', [
-            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1',
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X',
         ])->json('payload.token');
 
-        $this->postJson('/api/v1/licenses/verify', ['token' => $token, 'machineId' => 'MACHINE-1'])
+        $this->postJson('/api/v1/licenses/verify', ['token' => $token, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X'])
             ->assertOk()
             ->assertJsonPath('payload.valid', true)
             ->assertJsonPath('payload.status', 'ACTIVE');
@@ -74,7 +75,7 @@ class LicenseApiTest extends TestCase
         $license = $this->makeLicense(['max_seats' => 1, 'used_seats' => 1]);
 
         $this->postJson('/api/v1/licenses/activate', [
-            'licenseKey' => $license->license_key, 'machineId' => 'NEW-MACHINE',
+            'licenseKey' => $license->license_key, 'machineId' => 'NEW-MACHINE', 'productSku' => 'SKU-X',
         ])->assertStatus(429)->assertJsonPath('status', false);
     }
 
@@ -83,7 +84,7 @@ class LicenseApiTest extends TestCase
         $license = $this->makeLicense(['expires_at' => now()->subDay()]);
 
         $this->postJson('/api/v1/licenses/activate', [
-            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1',
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X',
         ])->assertStatus(402)->assertJsonPath('status', false);
     }
 
@@ -91,10 +92,45 @@ class LicenseApiTest extends TestCase
     {
         $license = $this->makeLicense();
         $token = $this->postJson('/api/v1/licenses/activate', [
-            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1',
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X',
         ])->json('payload.token');
 
-        $this->postJson('/api/v1/licenses/verify', ['token' => $token, 'machineId' => 'OTHER-MACHINE'])
+        $this->postJson('/api/v1/licenses/verify', ['token' => $token, 'machineId' => 'OTHER-MACHINE', 'productSku' => 'SKU-X'])
+            ->assertStatus(403)->assertJsonPath('status', false);
+    }
+
+    public function test_activate_rejects_wrong_product_with_403(): void
+    {
+        // License issued for GeoCAT (SKU-X); client claims it is GeoBill (SKU-Y).
+        $license = $this->makeLicense();
+
+        $this->postJson('/api/v1/licenses/activate', [
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-Y',
+        ])->assertStatus(403)->assertJsonPath('status', false);
+
+        // Seat must NOT be consumed on a rejected activation.
+        $this->assertEquals(0, $license->fresh()->used_seats);
+        $this->assertDatabaseMissing('glo_license_activations', ['machine_id' => 'MACHINE-1']);
+    }
+
+    public function test_activate_requires_product_sku(): void
+    {
+        $license = $this->makeLicense();
+
+        $this->postJson('/api/v1/licenses/activate', [
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1',
+        ])->assertStatus(422)->assertJsonValidationErrors('productSku');
+    }
+
+    public function test_verify_rejects_token_used_for_another_product(): void
+    {
+        // A valid GeoCAT token replayed by the GeoBill client must be refused.
+        $license = $this->makeLicense();
+        $token = $this->postJson('/api/v1/licenses/activate', [
+            'licenseKey' => $license->license_key, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-X',
+        ])->json('payload.token');
+
+        $this->postJson('/api/v1/licenses/verify', ['token' => $token, 'machineId' => 'MACHINE-1', 'productSku' => 'SKU-Y'])
             ->assertStatus(403)->assertJsonPath('status', false);
     }
 }

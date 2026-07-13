@@ -28,12 +28,16 @@ class LicenseTokenService
      *
      * @return array<string, mixed>
      */
-    public function activate(string $licenseKey, string $machineId, ?string $osInfo): array
+    public function activate(string $licenseKey, string $machineId, string $productSku, ?string $osInfo): array
     {
-        return DB::transaction(function () use ($licenseKey, $machineId, $osInfo) {
-            $license = License::query()->where('license_key', $licenseKey)->first();
+        return DB::transaction(function () use ($licenseKey, $machineId, $productSku, $osInfo) {
+            $license = License::query()->with('product')->where('license_key', $licenseKey)->first();
             if (! $license) {
                 throw new NotFoundException("License not found: {$licenseKey}");
+            }
+
+            if ($license->product?->sku !== $productSku) {
+                throw new LicenseForbiddenException("License {$licenseKey} is not valid for product: {$productSku}");
             }
 
             if ($license->status !== LicenseStatus::ACTIVE) {
@@ -80,12 +84,13 @@ class LicenseTokenService
                 $tokenExpiresAt = $license->expires_at->copy();
             }
 
-            $token = $this->generateToken($license->license_key, $machineId, $tokenExpiresAt);
+            $token = $this->generateToken($license->license_key, $machineId, $productSku, $tokenExpiresAt);
 
             return [
                 'valid' => true,
                 'licenseKey' => $license->license_key,
                 'machineId' => $machineId,
+                'productSku' => $productSku,
                 'token' => $token,
                 'usedSeats' => $license->used_seats,
                 'maxSeats' => $license->max_seats,
@@ -100,7 +105,7 @@ class LicenseTokenService
      *
      * @return array<string, mixed>
      */
-    public function verify(string $token, string $machineId): array
+    public function verify(string $token, string $machineId, string $productSku): array
     {
         try {
             $claims = (array) JWT::decode($token, new Key($this->signingKey(), 'HS256'));
@@ -110,8 +115,9 @@ class LicenseTokenService
 
         $licenseKey = $claims['licenseKey'] ?? null;
         $tokenMachineId = $claims['machineId'] ?? null;
+        $tokenProductSku = $claims['product'] ?? null;
 
-        if (! $licenseKey || ! $tokenMachineId) {
+        if (! $licenseKey || ! $tokenMachineId || ! $tokenProductSku) {
             throw new LicenseForbiddenException('License token is missing required claims');
         }
 
@@ -119,9 +125,17 @@ class LicenseTokenService
             throw new LicenseForbiddenException("License token does not match machine: {$machineId}");
         }
 
-        $license = License::query()->where('license_key', $licenseKey)->first();
+        if ($tokenProductSku !== $productSku) {
+            throw new LicenseForbiddenException("License token is not valid for product: {$productSku}");
+        }
+
+        $license = License::query()->with('product')->where('license_key', $licenseKey)->first();
         if (! $license) {
             throw new NotFoundException("License not found: {$licenseKey}");
+        }
+
+        if ($license->product?->sku !== $productSku) {
+            throw new LicenseForbiddenException("License {$licenseKey} is not valid for product: {$productSku}");
         }
 
         if ($license->status !== LicenseStatus::ACTIVE) {
@@ -155,6 +169,7 @@ class LicenseTokenService
             'valid' => true,
             'licenseKey' => $licenseKey,
             'machineId' => $machineId,
+            'productSku' => $productSku,
             'status' => $license->status->value,
             'licenseExpiresAt' => $license->expires_at->toIso8601String(),
             'tokenExpiresAt' => $tokenExpiresAt?->toIso8601String(),
@@ -162,11 +177,12 @@ class LicenseTokenService
         ];
     }
 
-    private function generateToken(string $licenseKey, string $machineId, Carbon $expiresAt): string
+    private function generateToken(string $licenseKey, string $machineId, string $productSku, Carbon $expiresAt): string
     {
         $payload = [
             'licenseKey' => $licenseKey,
             'machineId' => $machineId,
+            'product' => $productSku,
             'sub' => $licenseKey,
             'iat' => now()->timestamp,
             'exp' => $expiresAt->timestamp,

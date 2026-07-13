@@ -33,10 +33,13 @@ NODE_OPTIONS=--max-old-space-size=640 npm run build
 echo "==> [5/9] Migrasi database"
 php artisan migrate --force
 
-echo "==> [6/9] Seeder idempoten (mis. menu sidebar dari SystemMenuSeeder)"
+echo "==> [6/9] Seeder idempoten (menu sidebar + produk kanonik)"
 # seedMenus() di DatabaseSeeder bersifat all-or-nothing, jadi menu baru harus
 # di-seed lewat seeder terpisah yang firstOrCreate — aman dipanggil berulang.
 php artisan db:seed --class=SystemMenuSeeder --force
+# Produk kanonik (GEOCAT, GEOBILL) — SKU harus cocok dengan build client karena
+# aktivasi license dicek per-produk. firstOrCreate by sku, aman dipanggil ulang.
+php artisan db:seed --class=ProductSeeder --force
 
 echo "==> [7/9] Symlink storage publik"
 php artisan storage:link || true
