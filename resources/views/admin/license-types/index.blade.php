@@ -3,11 +3,15 @@
         open: false,
         mode: 'create',
         form: { id: '', name: '', description: '', is_trial: false },
+        confirmOpen: false,
+        deleteTarget: { id: '', name: '' },
         storeUrl: '{{ route('admin.license-types.store') }}',
         base: '{{ url('admin/license_types') }}',
         openCreate() { this.mode = 'create'; this.form = { id: '', name: '', description: '', is_trial: false }; this.open = true; },
         openEdit(t) { this.mode = 'edit'; this.form = { ...t }; this.open = true; },
-        get action() { return this.mode === 'create' ? this.storeUrl : this.base + '/' + this.form.id; }
+        openDelete(t) { this.deleteTarget = { ...t }; this.confirmOpen = true; },
+        get action() { return this.mode === 'create' ? this.storeUrl : this.base + '/' + this.form.id; },
+        get deleteAction() { return this.base + '/' + this.deleteTarget.id; }
     }">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -52,12 +56,10 @@
                                         class="p-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </button>
-                                    <form method="POST" action="{{ route('admin.license-types.destroy', $type->id) }}" onsubmit="return confirm('Delete this license type?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="p-2 rounded-lg hover:bg-error-container/40 text-on-surface-variant hover:text-error transition-colors">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
-                                    </form>
+                                    <button type="button" @click="openDelete({{ \Illuminate\Support\Js::from(['id' => $type->id, 'name' => $type->name]) }})"
+                                        class="p-2 rounded-lg hover:bg-error-container/40 text-on-surface-variant hover:text-error transition-colors">
+                                        <span class="material-symbols-outlined text-lg">delete</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -96,6 +98,32 @@
                         <button type="submit" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-primary to-primary-container text-on-primary text-sm font-bold">Save</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        {{-- Delete confirmation modal --}}
+        <div x-show="confirmOpen" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="confirmOpen = false"></div>
+            <div class="relative w-full max-w-md bg-surface-container rounded-2xl border border-white/10 shadow-2xl p-6" @keydown.escape.window="confirmOpen = false">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-11 h-11 rounded-full bg-error-container/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-error">warning</span>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-white">Delete License Type</h3>
+                        <p class="text-sm text-on-surface-variant mt-1">
+                            Are you sure you want to delete <span class="font-semibold text-on-surface" x-text="deleteTarget.name"></span>?
+                            This action cannot be undone.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-6">
+                    <button type="button" @click="confirmOpen = false" class="px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface text-sm font-medium">Cancel</button>
+                    <form method="POST" :action="deleteAction">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="px-5 py-2.5 rounded-lg bg-error text-on-error text-sm font-bold">Delete</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
