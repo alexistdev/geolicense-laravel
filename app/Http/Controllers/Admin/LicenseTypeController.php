@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\LicenseType;
+use App\Models\SystemLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +25,13 @@ class LicenseTypeController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        LicenseType::create($this->validated($request));
+        $licenseType = LicenseType::create($this->validated($request));
+
+        SystemLog::record(
+            "License type '{$licenseType->name}' was created.",
+            'INFO',
+            ['action' => 'License Type Created', 'context' => ['license_type_id' => $licenseType->id]],
+        );
 
         return back()->with('success', 'License type added successfully.');
     }
@@ -33,11 +40,23 @@ class LicenseTypeController extends Controller
     {
         $licenseType->update($this->validated($request));
 
+        SystemLog::record(
+            "License type '{$licenseType->name}' was updated.",
+            'INFO',
+            ['action' => 'License Type Updated', 'context' => ['license_type_id' => $licenseType->id]],
+        );
+
         return back()->with('success', 'License type updated successfully.');
     }
 
     public function destroy(LicenseType $licenseType): RedirectResponse
     {
+        SystemLog::record(
+            "License type '{$licenseType->name}' was deleted.",
+            'WARNING',
+            ['action' => 'License Type Deleted', 'context' => ['license_type_id' => $licenseType->id]],
+        );
+
         $licenseType->delete();
 
         return back()->with('success', 'License type deleted successfully.');

@@ -10,6 +10,7 @@
             str_contains($u, 'products') => 'inventory_2',
             str_contains($u, 'invoice') => 'receipt_long',
             str_contains($u, 'marketplace') => 'store',
+            str_contains($u, 'logs') => 'terminal',
             default => match (true) {
                 str_contains($menu->icon ?? '', 'bx-home') => 'dashboard',
                 str_contains($menu->icon ?? '', 'bx-barcode') => 'receipt_long',
@@ -19,6 +20,8 @@
                 str_contains($menu->icon ?? '', 'bx-book') => 'menu_book',
                 str_contains($menu->icon ?? '', 'bx-headphone') => 'support_agent',
                 str_contains($menu->icon ?? '', 'bx-store') => 'store',
+                str_contains($menu->icon ?? '', 'bx-list') => 'terminal',
+                str_contains($menu->icon ?? '', 'bx-cog') => 'settings_suggest',
                 default => 'circle',
             },
         };

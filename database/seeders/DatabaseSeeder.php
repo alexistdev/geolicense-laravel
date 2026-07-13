@@ -41,6 +41,9 @@ class DatabaseSeeder extends Seeder
         $this->seedPaymentMethods();
         $this->seedOrderFlow($monthly, $yearly, $product);
         $this->seedMenus();
+
+        // Idempotent — safe to run against a freshly seeded or existing menu tree.
+        $this->call(SystemMenuSeeder::class);
     }
 
     private function seedUsers(): void

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\Role;
 use App\Http\Controllers\Concerns\HandlesRecaptcha;
 use App\Http\Controllers\Controller;
+use App\Models\SystemLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,14 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(Auth::user()->role->homeUrl());
+        $user = Auth::user();
+        SystemLog::record(
+            "{$user->full_name} ({$user->email}) logged in.",
+            'INFO',
+            ['action' => 'User Login', 'context' => ['user_id' => $user->id]],
+        );
+
+        return redirect()->intended($user->role->homeUrl());
     }
 
     public function showRegister()
@@ -78,14 +86,30 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
+        SystemLog::record(
+            "New account registered: {$user->full_name} ({$user->email}).",
+            'INFO',
+            ['action' => 'User Registered', 'context' => ['user_id' => $user->id]],
+        );
+
         return redirect($user->role->homeUrl());
     }
 
     public function logout(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($user) {
+            SystemLog::record(
+                "{$user->full_name} ({$user->email}) logged out.",
+                'INFO',
+                ['action' => 'User Logout', 'user_id' => $user->id, 'causer' => $user->email],
+            );
+        }
 
         return redirect()->route('login');
     }
