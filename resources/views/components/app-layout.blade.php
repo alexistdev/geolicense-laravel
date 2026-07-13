@@ -89,25 +89,6 @@
                 @endforeach
             </nav>
 
-            @if ($sidebarUser?->isAdmin())
-                <div class="px-3 pb-2">
-                    <a href="{{ route('admin.settings') }}"
-                        class="py-3 px-3 flex items-center gap-3 rounded-lg transition-all duration-200 {{ request()->routeIs('admin.settings*') ? 'bg-gradient-to-r from-blue-500/10 to-transparent text-blue-400' : 'text-[#c2c6d6] hover:bg-[#171f33] hover:text-white' }}">
-                        <span class="material-symbols-outlined">settings</span>
-                        <span class="text-sm font-medium">Settings</span>
-                    </a>
-                </div>
-            @endif
-
-            <div class="px-6 mt-auto">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit"
-                        class="w-full py-3 px-4 flex items-center justify-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-lg transition-transform active:scale-95 shadow-lg shadow-primary/20">
-                        <span class="material-symbols-outlined text-lg">logout</span> Sign Out
-                    </button>
-                </form>
-            </div>
         </div>
     </aside>
 
@@ -118,12 +99,40 @@
                 <span class="text-lg font-extrabold tracking-tighter text-[#adc6ff]">{{ $header ?? 'GeoLicense' }}</span>
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-right">
+                <div class="text-right hidden sm:block leading-tight">
                     <p class="text-sm font-bold text-white">{{ $sidebarUser?->full_name ?? 'User' }}</p>
-                    <p class="text-[0.6875rem] text-primary uppercase tracking-widest">{{ $sidebarUser?->role->value }}</p>
+                    <p class="text-xs lowercase text-on-surface-variant">({{ $sidebarUser?->email }})</p>
                 </div>
-                <div class="w-10 h-10 rounded-full border-2 border-primary/20 bg-surface-container-high flex items-center justify-center text-primary font-bold">
-                    {{ strtoupper(substr($sidebarUser?->full_name ?? 'U', 0, 1)) }}
+                <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false">
+                    <button type="button" @click="open = !open"
+                        :aria-expanded="open" aria-haspopup="true" aria-label="Account menu"
+                        class="w-10 h-10 rounded-full border-2 border-primary/20 bg-surface-container-high flex items-center justify-center text-primary font-bold cursor-pointer transition hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/40">
+                        {{ strtoupper(substr($sidebarUser?->full_name ?? 'U', 0, 1)) }}
+                    </button>
+
+                    <div x-show="open" x-cloak @click.outside="open = false"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 -translate-y-1"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-1"
+                        class="absolute right-0 mt-2 w-52 rounded-xl glass-panel border border-white/10 shadow-2xl shadow-[#060e20] py-1.5 z-50">
+                        @if ($sidebarUser?->isAdmin())
+                            <a href="{{ route('admin.settings') }}"
+                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-[#c2c6d6] hover:bg-white/5 hover:text-white transition">
+                                <span class="material-symbols-outlined text-lg">settings</span> Settings
+                            </a>
+                        @endif
+
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition cursor-pointer">
+                                <span class="material-symbols-outlined text-lg">logout</span> Logout
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </header>
