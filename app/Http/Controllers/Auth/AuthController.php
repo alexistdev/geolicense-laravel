@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\HandlesRecaptcha;
 use App\Http\Controllers\Controller;
 use App\Models\SystemLog;
 use App\Models\User;
+use App\Notifications\WelcomeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -91,6 +92,16 @@ class AuthController extends Controller
             'INFO',
             ['action' => 'User Registered', 'context' => ['user_id' => $user->id]],
         );
+
+        try {
+            $user->notify(new WelcomeNotification($user));
+        } catch (\Throwable $e) {
+            SystemLog::record(
+                "Failed to send welcome email to {$user->email}: {$e->getMessage()}",
+                'ERROR',
+                ['action' => 'Welcome Email Failed', 'context' => ['user_id' => $user->id]],
+            );
+        }
 
         return redirect($user->role->homeUrl());
     }
