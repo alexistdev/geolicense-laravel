@@ -80,5 +80,36 @@
                 </div>
             </div>
         </div>
+
+        {{-- Who's online --}}
+        <div class="bg-surface-container rounded-2xl p-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+                <div class="flex items-center gap-2.5">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400"></span>
+                    </span>
+                    <h3 class="text-lg font-bold text-white">Online Now</h3>
+                    <span class="px-2 py-0.5 rounded-full bg-surface-container-high text-xs font-bold text-on-surface-variant">{{ $onlineUsers->count() }}</span>
+                </div>
+                <span class="text-[0.6875rem] text-on-surface-variant uppercase tracking-widest">Active in last 5 min · non-admin</span>
+            </div>
+
+            @if ($onlineUsers->isEmpty())
+                <p class="text-sm text-on-surface-variant">No users are currently online.</p>
+            @else
+                <div class="divide-y divide-white/5">
+                    @foreach ($onlineUsers as $ou)
+                        <div class="flex items-center justify-between gap-4 py-3">
+                            <span class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
+                                <span class="text-sm text-on-surface truncate">{{ $ou['email'] }}</span>
+                            </span>
+                            <span class="text-xs text-on-surface-variant shrink-0">{{ $ou['last_activity']->diffForHumans() }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </div>
 </x-app-layout>

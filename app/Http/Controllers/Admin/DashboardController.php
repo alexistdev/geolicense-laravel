@@ -4,14 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\LicenseStatus;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\License;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /** A session counts as "online" if it was active within this many minutes. */
+    private const ONLINE_WINDOW_MINUTES = 5;
+
     public function index()
     {
         $stats = [
@@ -35,6 +41,41 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'recentLicenses', 'pendingInvoices'));
+        $onlineUsers = $this->onlineUsers();
+
+        return view('admin.dashboard', compact('stats', 'recentLicenses', 'pendingInvoices', 'onlineUsers'));
+    }
+
+    /**
+     * Non-admin users with a database session active in the last few minutes.
+     *
+     * @return \Illuminate\Support\Collection<int, array{email: string, last_activity: Carbon}>
+     */
+    private function onlineUsers()
+    {
+        $threshold = now()->subMinutes(self::ONLINE_WINDOW_MINUTES)->getTimestamp();
+
+        // Most-recent activity per authenticated session (a user may have several).
+        $lastActivityByUser = DB::table('sessions')
+            ->whereNotNull('user_id')
+            ->where('last_activity', '>=', $threshold)
+            ->selectRaw('user_id, MAX(last_activity) as last_activity')
+            ->groupBy('user_id')
+            ->pluck('last_activity', 'user_id');
+
+        if ($lastActivityByUser->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereIn('id', $lastActivityByUser->keys())
+            ->where('role', '!=', Role::ADMIN->value)
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn (User $user) => [
+                'email' => $user->email,
+                'last_activity' => Carbon::createFromTimestamp($lastActivityByUser[$user->id]),
+            ])
+            ->values();
     }
 }
