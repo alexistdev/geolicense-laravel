@@ -9,6 +9,10 @@ the client-facing license API contract, while replacing the split REST-backend /
 Vue-SPA with idiomatic Laravel: session auth for the UI, Blade + Tailwind for the
 views, and JWT only where the original also used it — the license activation token.
 
+## Demo
+
+[https://geolicense.my.id/login](https://geolicense.my.id/login)
+
 ## Stack
 
 - Laravel 13 / PHP 8.4, MySQL (`geolicense_laravel`)
