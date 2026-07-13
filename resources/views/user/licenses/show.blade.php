@@ -1,5 +1,5 @@
 <x-app-layout title="License Detail — GeoLicense" header="My Account">
-    <div class="p-8 space-y-6 max-w-4xl" x-data="{ copied: false }">
+    <div class="p-8 space-y-6 max-w-4xl">
         <a href="{{ route('user.license.index') }}" class="inline-flex items-center gap-1 text-on-surface-variant hover:text-primary text-sm">
             <span class="material-symbols-outlined text-base">arrow_back</span> Back to licenses
         </a>
@@ -8,13 +8,7 @@
             <div class="flex flex-col md:flex-row justify-between gap-4 pb-6 border-b border-white/5">
                 <div>
                     <p class="text-on-surface-variant text-xs uppercase tracking-widest">{{ $license->licensePlan?->product?->name ?? $license->product?->name }}</p>
-                    <div class="flex items-center gap-3 mt-2">
-                        <p class="font-mono text-primary text-lg break-all">{{ $license->license_key }}</p>
-                        <button @click="navigator.clipboard.writeText('{{ $license->license_key }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                            class="p-1.5 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors">
-                            <span class="material-symbols-outlined text-lg" x-text="copied ? 'check' : 'content_copy'"></span>
-                        </button>
-                    </div>
+                    <h1 class="text-on-surface text-2xl font-semibold mt-2">{{ $license->licensePlan?->name ?? '—' }}</h1>
                 </div>
                 <x-status-badge :status="$license->status" />
             </div>
@@ -58,11 +52,15 @@
                 @endif
             </div>
 
-            <div class="pt-6 border-t border-white/5">
-                <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">Client activation</p>
-                <div class="rounded-lg bg-surface-container-lowest p-4 font-mono text-xs text-on-surface-variant overflow-x-auto">
-                    <p class="text-primary">POST /api/v1/licenses/activate</p>
-                    <p>{ "licenseKey": "{{ $license->license_key }}", "machineId": "&lt;machine&gt;", "productSku": "{{ $license->product?->sku }}", "osInfo": "&lt;os&gt;" }</p>
+            <div class="pt-6 border-t border-white/5" x-data="{ copiedKey: false }">
+                <p class="text-xs uppercase tracking-widest text-on-surface-variant mb-3">License Key</p>
+                <div class="flex items-center gap-3 rounded-lg bg-surface-container-lowest p-4">
+                    <p class="flex-1 font-mono text-sm text-primary break-all select-all">{{ $license->license_key }}</p>
+                    <button @click="navigator.clipboard.writeText('{{ $license->license_key }}'); copiedKey = true; setTimeout(() => copiedKey = false, 2000)"
+                        class="shrink-0 p-1.5 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors"
+                        title="Copy license key">
+                        <span class="material-symbols-outlined text-lg" x-text="copiedKey ? 'check' : 'content_copy'"></span>
+                    </button>
                 </div>
             </div>
         </div>
