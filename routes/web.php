@@ -42,7 +42,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 */
 Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/users', [Admin\UserController::class, 'index'])->name('users');
+    Route::get('/users', [Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [Admin\UserController::class, 'show'])->name('users.show');
+    Route::patch('/users/{user}/suspend', [Admin\UserController::class, 'suspend'])->name('users.suspend');
 
     Route::get('/products', [Admin\ProductController::class, 'index'])->name('products.index');
     Route::post('/products', [Admin\ProductController::class, 'store'])->name('products.store');

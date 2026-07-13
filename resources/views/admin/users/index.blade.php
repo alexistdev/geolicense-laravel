@@ -21,6 +21,7 @@
                         <th class="py-3">Role</th>
                         <th class="py-3">Status</th>
                         <th class="py-3">Joined</th>
+                        <th class="py-3 text-right"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/5">
@@ -42,9 +43,14 @@
                                 <x-status-badge :status="$user->is_suspended ? 'SUSPENDED' : 'ACTIVE'" />
                             </td>
                             <td class="py-3.5 text-on-surface-variant text-xs">{{ $user->created_at?->format('d M Y') }}</td>
+                            <td class="py-3.5 text-right">
+                                <a href="{{ route('admin.users.show', $user->id) }}" class="inline-flex items-center gap-1 text-primary hover:text-primary-container text-sm font-medium">
+                                    Detail <span class="material-symbols-outlined text-base">chevron_right</span>
+                                </a>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-10 text-center text-on-surface-variant">No users found.</td></tr>
+                        <tr><td colspan="6" class="py-10 text-center text-on-surface-variant">No users found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
