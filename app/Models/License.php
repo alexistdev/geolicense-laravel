@@ -46,12 +46,16 @@ class License extends BaseModel
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        // A license is permanently tied to the product it was issued for,
+        // so keep resolving it even after the product is soft-deleted.
+        return $this->belongsTo(Product::class, 'product_id')->withTrashed();
     }
 
     public function licensePlan(): BelongsTo
     {
-        return $this->belongsTo(LicensePlan::class, 'license_plan_id');
+        // Likewise the plan: a soft-deleted plan must still surface its name
+        // on existing licenses (e.g. the license detail title).
+        return $this->belongsTo(LicensePlan::class, 'license_plan_id')->withTrashed();
     }
 
     public function orderItem(): BelongsTo
