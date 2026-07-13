@@ -37,9 +37,9 @@ class DatabaseSeeder extends Seeder
         $this->seedUsers();
         $licenseType = $this->seedLicenseType();
         $product = $this->seedProduct();
-        [$monthly, $yearly] = $this->seedLicensePlans($product, $licenseType);
+//        [$monthly, $yearly] = $this->seedLicensePlans($product, $licenseType);
         $this->seedPaymentMethods();
-        $this->seedOrderFlow($monthly, $yearly, $product);
+        //$this->seedOrderFlow($monthly, $yearly, $product);
         $this->seedMenus();
 
         // Idempotent — safe to run against a freshly seeded or existing menu tree.
