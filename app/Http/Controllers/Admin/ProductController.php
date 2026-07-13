@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\SystemLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -27,7 +28,13 @@ class ProductController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        Product::create($data);
+        $product = Product::create($data);
+
+        SystemLog::record(
+            "Product '{$product->name}' (SKU: {$product->sku}) was created.",
+            'INFO',
+            ['action' => 'Product Created', 'context' => ['product_id' => $product->id]],
+        );
 
         return back()->with('success', 'Product added successfully.');
     }
@@ -37,11 +44,23 @@ class ProductController extends Controller
         $data = $this->validated($request);
         $product->update($data);
 
+        SystemLog::record(
+            "Product '{$product->name}' (SKU: {$product->sku}) was updated.",
+            'INFO',
+            ['action' => 'Product Updated', 'context' => ['product_id' => $product->id]],
+        );
+
         return back()->with('success', 'Product updated successfully.');
     }
 
     public function destroy(Product $product): RedirectResponse
     {
+        SystemLog::record(
+            "Product '{$product->name}' (SKU: {$product->sku}) was deleted.",
+            'WARNING',
+            ['action' => 'Product Deleted', 'context' => ['product_id' => $product->id]],
+        );
+
         $product->delete();
 
         return back()->with('success', 'Product deleted successfully.');

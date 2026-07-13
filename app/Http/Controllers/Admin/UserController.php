@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,6 +57,12 @@ class UserController extends Controller
             'is_suspended' => ! $user->is_suspended,
             'modified_by' => Auth::user()?->email,
         ]);
+
+        SystemLog::record(
+            "{$user->full_name} ({$user->email}) was ".($user->is_suspended ? 'suspended' : 'reactivated').'.',
+            $user->is_suspended ? 'WARNING' : 'INFO',
+            ['action' => $user->is_suspended ? 'User Suspended' : 'User Reactivated'],
+        );
 
         $message = $user->is_suspended
             ? "{$user->full_name}'s account has been suspended."
