@@ -53,6 +53,8 @@
                             class="w-full bg-surface-container-highest/50 border-none rounded-lg py-3.5 px-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/50 outline-none">
                     </div>
 
+                    <x-recaptcha action="register" />
+
                     <button type="submit"
                         class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-lg shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                         Create Account <span class="material-symbols-outlined text-lg">arrow_forward</span>

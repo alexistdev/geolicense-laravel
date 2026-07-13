@@ -1,6 +1,17 @@
 <?php
 
-use Illuminate\Support\Number;
+use App\Services\RecaptchaService;
+
+if (! function_exists('recaptcha')) {
+    /**
+     * Resolve the reCAPTCHA service — used by views, rules and controllers to
+     * check whether the feature is enabled and to verify tokens.
+     */
+    function recaptcha(): RecaptchaService
+    {
+        return app(RecaptchaService::class);
+    }
+}
 
 if (! function_exists('money')) {
     /**

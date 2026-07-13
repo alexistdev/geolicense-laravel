@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Enums\Role;
+use App\Http\Controllers\Concerns\HandlesRecaptcha;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    use HandlesRecaptcha;
+
     public function showLogin()
     {
         if (Auth::check()) {
@@ -23,10 +26,12 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-        ]);
+        ] + $this->recaptchaRules());
+
+        $credentials = ['email' => $request->email, 'password' => $request->password];
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
@@ -61,7 +66,7 @@ class AuthController extends Controller
             'full_name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:glo_users,email'],
             'password' => ['required', 'string', 'min:4', 'confirmed'],
-        ]);
+        ] + $this->recaptchaRules());
 
         $user = User::create([
             'full_name' => $data['full_name'],

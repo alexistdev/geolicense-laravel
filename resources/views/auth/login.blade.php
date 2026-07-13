@@ -23,6 +23,12 @@
                     <p class="text-on-surface-variant text-sm mt-1">Enter your email and password to authenticate</p>
                 </div>
 
+                @if (session('success') || session('status'))
+                    <div class="bg-primary-container/40 border border-primary/30 text-primary px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+                        {{ session('success') ?? session('status') }}
+                    </div>
+                @endif
+
                 @if ($errors->any())
                     <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-6 text-sm font-medium">
                         {{ $errors->first() }}
@@ -57,8 +63,10 @@
                             <input name="remember" type="checkbox" class="w-5 h-5 rounded border border-outline-variant/30 bg-surface-container-highest text-primary focus:ring-primary/40">
                             <span class="text-sm text-on-surface-variant">Remember</span>
                         </label>
-                        <a href="#" class="text-sm font-semibold text-primary hover:text-primary-container transition-all">Recovery Password?</a>
+                        <a href="{{ route('password.request') }}" class="text-sm font-semibold text-primary hover:text-primary-container transition-all">Recovery Password?</a>
                     </div>
+
+                    <x-recaptcha action="login" />
 
                     <button type="submit"
                         class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-lg shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2">

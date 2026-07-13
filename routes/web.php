@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,13 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:100,1');
+
+    Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequest'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:5,1')->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:5,1')->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -55,6 +63,7 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
     Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
     Route::patch('/settings/profile', [Admin\SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::patch('/settings/password', [Admin\SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::patch('/settings/recaptcha', [Admin\SettingsController::class, 'updateRecaptcha'])->name('settings.recaptcha');
 });
 
 /*
