@@ -56,6 +56,11 @@ Route::middleware(['auth', 'role:ADMIN'])->prefix('admin')->name('admin.')->grou
     Route::put('/license_types/{licenseType}', [Admin\LicenseTypeController::class, 'update'])->name('license-types.update');
     Route::delete('/license_types/{licenseType}', [Admin\LicenseTypeController::class, 'destroy'])->name('license-types.destroy');
 
+    Route::get('/license_plans', [Admin\LicensePlanController::class, 'index'])->name('license-plans.index');
+    Route::post('/license_plans', [Admin\LicensePlanController::class, 'store'])->name('license-plans.store');
+    Route::put('/license_plans/{licensePlan}', [Admin\LicensePlanController::class, 'update'])->name('license-plans.update');
+    Route::delete('/license_plans/{licensePlan}', [Admin\LicensePlanController::class, 'destroy'])->name('license-plans.destroy');
+
     Route::get('/invoices', [Admin\InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{invoice}', [Admin\InvoiceController::class, 'show'])->name('invoices.show');
     Route::patch('/invoices/{invoice}/validate', [Admin\InvoiceController::class, 'validateInvoice'])->name('invoices.validate');

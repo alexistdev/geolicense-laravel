@@ -200,6 +200,7 @@ class DatabaseSeeder extends Seeder
         $this->menu('Users', '/admin/users', 2, $adminMaster->id, 2, 'dm1', 'bx bx-server');
         $this->menu('Products', '/admin/products', 2, $adminMaster->id, 2, 'dm3', 'bx bx-server');
         $this->menu('Licenses Type', '/admin/license_types', 2, $adminMaster->id, 2, 'dm4', 'bx bx-server');
+        $this->menu('License Plans', '/admin/license_plans', 3, $adminMaster->id, 2, 'dm6', 'bx bx-package');
         $this->menu('Invoices', '/admin/invoices', 2, $adminBilling->id, 2, 'dm5', 'bx bx-server');
 
         // User menus
@@ -210,7 +211,7 @@ class DatabaseSeeder extends Seeder
         $this->menu('Support', '#', 5, null, 2, 'us4', 'bx bx-headphone');
 
         $roleMenuCodes = [
-            Role::ADMIN->value => ['ad1', 'ad2', 'ad3', 'dm1', 'dm3', 'dm4', 'dm5'],
+            Role::ADMIN->value => ['ad1', 'ad2', 'ad3', 'dm1', 'dm3', 'dm4', 'dm6', 'dm5'],
             Role::USER->value => ['us1', 'us2', 'us3', 'us5', 'us4'],
         ];
 
